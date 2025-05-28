@@ -20,7 +20,11 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                    mvn clean package -DskipTests
+                    # Ensure consistent JAR name for Docker
+                    cp target/cmdb-app-*.jar target/cmdb-app.jar
+                '''
             }
         }
 
