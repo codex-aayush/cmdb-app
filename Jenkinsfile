@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('sonar-token') // SonarQube credential
-        DOCKER_IMAGE = 'your.private.registry:5000/cmdb-app'  // Private registry URL
+        DOCKER_IMAGE = 'codexaayush/cmdb-app'  // Replace with your Docker Hub username
         DOCKER_TAG = "${env.BRANCH_NAME.replace('/', '-')}"
     }
 
