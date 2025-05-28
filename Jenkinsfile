@@ -7,8 +7,8 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('sonar-token') // SonarQube credential
-        DOCKER_IMAGE = 'your-docker-image-name' // Define your Docker image name here
-        DOCKER_TAG = "${env.BRANCH_NAME.replace('/', '-')}" // Auto-sanitize branch name for tag
+        DOCKER_IMAGE = 'your.private.registry:5000/cmdb-app'  // Private registry URL
+        DOCKER_TAG = "${env.BRANCH_NAME.replace('/', '-')}"
     }
 
     stages {
