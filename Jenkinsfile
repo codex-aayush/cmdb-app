@@ -26,7 +26,7 @@ pipeline {
                     sh """
                         mvn sonar:sonar \
                         -Dsonar.projectKey=cmdb-app \
-                        -Dsonar.host.url=http://your_azure_vm_ip:9000 \
+                        -Dsonar.host.url=http:52.153.224.58:9000 \
                         -Dsonar.login=$SONAR_TOKEN
                     """
                 }
