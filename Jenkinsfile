@@ -36,14 +36,35 @@ pipeline {
                 }
             }
         }
+
+        stage('Docker Build & Push') {
+            environment {
+                IMAGE_NAME = 'your-image-name'  // Should be defined or parameterized
+                BRANCH_NAME = env.BRANCH_NAME  // Should be defined or parameterized
+            }
+            steps {
+                script {
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'docker-creds',
+                            usernameVariable: 'DOCKER_CREDS_USR',
+                            passwordVariable: 'DOCKER_CREDS_PSW'
+                        )
+                    ]) {
+                        sh """
+                            docker build -t $IMAGE_NAME:$BRANCH_NAME .
+                            echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin
+                            docker push $IMAGE_NAME:$BRANCH_NAME
+                        """
+                    }
+                }
+            }
+        }
     }
 
     post {
         always {
-            script {
-                cleanWs() // Clean up workspace after every build
-            }
+            cleanWs() // Clean up workspace after every build
         }
     }
 }
-
