@@ -2,45 +2,37 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN = credentials('sonarqube-token')
-        DOCKER_CREDS = credentials('dockerhub')
-        IMAGE_NAME = "your_dockerhub_username/cmdb-app"
+        MAVEN_HOME = tool 'Maven' // Maven installed via Jenkins Global Tool Configuration
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm // Checkout code from the branch Jenkins detected
             }
         }
 
         stage('Build with Maven') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn clean install' // Compile and package the app
             }
         }
 
-        stage('Code Quality - SonarQube') {
+        stage('SonarQube Analysis') {
+            environment {
+                SONAR_HOST_URL = 'http://52.153.224.58:9000' // SonarQube server IP
+            }
             steps {
                 withSonarQubeEnv('SonarQubeServer') {
-                    sh """
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=cmdb-app \
-                        -Dsonar.host.url=http:52.153.224.58:9000 \
-                        -Dsonar.login=$SONAR_TOKEN
-                    """
-                }
-            }
-        }
-
-        stage('Docker Build & Push') {
-            steps {
-                script {
-                    sh """
-                        docker build -t $IMAGE_NAME:$BRANCH_NAME .
-                        echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin
-                        docker push $IMAGE_NAME:$BRANCH_NAME
-                    """
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        // Run Sonar analysis with proper authentication
+                        sh """
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=cmdb-app \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.login=$SONAR_TOKEN
+                        """
+                    }
                 }
             }
         }
@@ -48,7 +40,9 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            script {
+                cleanWs() // Clean up workspace after every build
+            }
         }
     }
 }
