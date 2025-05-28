@@ -40,7 +40,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'docker-hub-creds', // Add Docker Hub credentials in Jenkins
+                    credentialsId: 'dockerhub', // Add Docker Hub credentials in Jenkins
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
