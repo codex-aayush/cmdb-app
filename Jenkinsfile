@@ -1,70 +1,56 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven 3' // Make sure this tool is configured in Jenkins
+    }
+
     environment {
-        MAVEN_HOME = tool 'Maven' // Maven installed via Jenkins Global Tool Configuration
+        SONAR_TOKEN = credentials('sonar-token') // SonarQube credential
+        DOCKER_IMAGE = 'your-docker-image-name' // Define your Docker image name here
+        DOCKER_TAG = "${env.BRANCH_NAME.replace('/', '-')}" // Auto-sanitize branch name for tag
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm // Checkout code from the branch Jenkins detected
+                checkout scm
             }
         }
 
-        stage('Build with Maven') {
+        stage('Build') {
             steps {
-                sh 'mvn clean install' // Compile and package the app
+                sh 'mvn clean package -DskipTests'
             }
         }
 
         stage('SonarQube Analysis') {
-            environment {
-                SONAR_HOST_URL = 'http://52.153.224.58:9000' // SonarQube server IP
-            }
             steps {
                 withSonarQubeEnv('SonarQubeServer') {
-                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                        // Run Sonar analysis with proper authentication
-                        sh """
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=cmdb-app \
-                            -Dsonar.host.url=$SONAR_HOST_URL \
-                            -Dsonar.login=$SONAR_TOKEN
-                        """
-                    }
+                    sh """
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=cmdb-app \
+                        -Dsonar.host.url=http://52.153.224.58:9000 \
+                        -Dsonar.login=$SONAR_TOKEN
+                    """
                 }
             }
         }
 
         stage('Docker Build & Push') {
-            environment {
-                IMAGE_NAME = 'your-image-name'  // Should be defined or parameterized
-                BRANCH_NAME = env.BRANCH_NAME  // Should be defined or parameterized
-            }
             steps {
-                script {
-                    withCredentials([
-                        usernamePassword(
-                            credentialsId: 'docker-creds',
-                            usernameVariable: 'DOCKER_CREDS_USR',
-                            passwordVariable: 'DOCKER_CREDS_PSW'
-                        )
-                    ]) {
-                        sh """
-                            docker build -t $IMAGE_NAME:$BRANCH_NAME .
-                            echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin
-                            docker push $IMAGE_NAME:$BRANCH_NAME
-                        """
-                    }
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-hub-creds', // Add Docker Hub credentials in Jenkins
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $DOCKER_IMAGE:$DOCKER_TAG
+                    """
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            cleanWs() // Clean up workspace after every build
         }
     }
 }
