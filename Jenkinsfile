@@ -1,10 +1,18 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven 3' // Make sure this tool is configured in Jenkins
+    }
+
+    environment {
+        SONAR_TOKEN = credentials('sonar-token') // Add this credential in Jenkins
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                checkout scm // Automatically checks out code from GitHub
+                checkout scm
             }
         }
 
@@ -14,9 +22,16 @@ pipeline {
             }
         }
 
-        stage('Hello') {
+        stage('SonarQube Analysis') {
             steps {
-                echo 'Hello from Jenkins multibranch pipeline!'
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh """
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=cmdb-app \
+                        -Dsonar.host.url=http://<your_azure_vm_ip>:9000 \
+                        -Dsonar.login=$SONAR_TOKEN
+                    """
+                }
             }
         }
     }
